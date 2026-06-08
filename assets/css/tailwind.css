@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  background: #eef3f8;
+  font-family: 'Sarabun', 'Noto Sans Thai', Tahoma, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  font-family: 'Sarabun', 'Noto Sans Thai', Tahoma, sans-serif;
+  font-feature-settings: 'kern';
+}
+
+* {
+  min-width: 0;
+}
+
+th,
+td,
+button,
+select,
+input,
+.badge,
+.btn {
+  overflow-wrap: anywhere;
+}
+
+.dashboard-card {
+  border: 1px solid rgb(226 232 240);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.filter-panel {
+  border: 1px solid rgb(125 211 252);
+  background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 70%);
+  box-shadow: 0 14px 30px rgba(14, 116, 144, 0.12);
+}
+
+.filter-control {
+  border-color: rgb(14 165 233);
+  background-color: #ffffff;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.filter-control:focus {
+  outline: 2px solid rgb(56 189 248);
+  outline-offset: 2px;
+  border-color: rgb(2 132 199);
+}
+
+.search-input {
+  border-color: rgb(20 184 166);
+  background: #f0fdfa;
+  color: #134e4a;
+  font-weight: 700;
+}
+
+.search-input::placeholder {
+  color: #0f766e;
+  opacity: 0.75;
+}
+
+.search-input:focus {
+  outline: 2px solid rgb(45 212 191);
+  outline-offset: 2px;
+  border-color: rgb(13 148 136);
+  background: #ffffff;
+}
