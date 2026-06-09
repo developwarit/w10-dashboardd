@@ -36,18 +36,18 @@ interface DashboardData {
 
 const weeks: WeekKey[] = ['W11', 'W12', 'W13', 'W14'];
 const months = [
-  { label: 'มกราคม', value: '1' },
-  { label: 'กุมภาพันธ์', value: '2' },
-  { label: 'มีนาคม', value: '3' },
-  { label: 'เมษายน', value: '4' },
-  { label: 'พฤษภาคม', value: '5' },
-  { label: 'มิถุนายน', value: '6' },
-  { label: 'กรกฎาคม', value: '7' },
-  { label: 'สิงหาคม', value: '8' },
-  { label: 'กันยายน', value: '9' },
-  { label: 'ตุลาคม', value: '10' },
-  { label: 'พฤศจิกายน', value: '11' },
-  { label: 'ธันวาคม', value: '12' },
+  { label: 'ม.ค.', value: '1' },
+  { label: 'ก.พ.', value: '2' },
+  { label: 'มี.ค.', value: '3' },
+  { label: 'เม.ย.', value: '4' },
+  { label: 'พ.ค.', value: '5' },
+  { label: 'มิ.ย.', value: '6' },
+  { label: 'ก.ค.', value: '7' },
+  { label: 'ส.ค.', value: '8' },
+  { label: 'ก.ย.', value: '9' },
+  { label: 'ต.ค.', value: '10' },
+  { label: 'พ.ย.', value: '11' },
+  { label: 'ธ.ค.', value: '12' },
 ];
 const years = Array.from({ length: 10 }, (_, index) => String(2020 + index));
 
@@ -224,7 +224,7 @@ async function applyFilters() {
           @click="activeTab = 'report'"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-          รายการงาน
+          จัดซื้อจัดจ้าง
         </button>
         <button
           class="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all"
