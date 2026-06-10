@@ -474,7 +474,7 @@ async function applyFilters() {
                 </div>
                 <!-- Pending/Carried Over -->
                 <div class="flex flex-col">
-                  <p class="text-[11px] font-black uppercase text-blue-600 leading-tight">ค้าง</p>
+                  <p class="text-[11px] font-black uppercase text-blue-600 leading-tight">ยังไม่เสร็จ</p>
                   <p class="text-2xl font-black text-slate-950 leading-none">{{ data?.groupStats[week]?.left || 0 }}</p>
                 </div>
                 <!-- Other Finished -->
