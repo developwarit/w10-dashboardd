@@ -348,7 +348,7 @@ async function applyFilters() {
         <span>โหลดข้อมูลไม่สำเร็จ: {{ error.message }}</span>
       </div>
 
-      <section class="grid gap-4 xl:grid-cols-2">
+      <section class="grid gap-4 xl:grid-cols-1">
         <div class="dashboard-card rounded-xl p-5 sm:p-6 flex flex-col h-full relative overflow-hidden">
           <div class="absolute top-0 left-0 w-1.5 h-full bg-sky-600"></div>
           <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
@@ -386,30 +386,28 @@ async function applyFilters() {
                 {{ week }}
               </div>
               
-              <div class="flex items-center gap-4 mb-6">
-                <!-- User Image -->
-                <div class="relative shrink-0">
-                  <img 
-                    :src="index === 0 ? '/images/chanwit-Photoroom.png' : index === 1 ? '/images/saman-Photoroom.png' : index === 2 ? '/images/sitiporn-Photoroom.png' : '/images/wutisak-Photoroom.png'" 
-                    class="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-sm"
-                    alt="User"
-                  />
-                  <div 
-                    class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-white"
-                    :class="index === 0 ? 'bg-sky-500' : index === 1 ? 'bg-emerald-500' : index === 2 ? 'bg-indigo-500' : 'bg-amber-500'"
-                  ></div>
-                </div>
-                <div class="flex flex-col">
-                  <span class="text-base font-black text-slate-900">{{ week }}</span>
+              <div class="flex items-center justify-between gap-4 mb-6">
+                <!-- Image (Left) and Data (Right) -->
+                <div class="flex items-center gap-3">
+                   <div class="relative shrink-0">
+                     <img 
+                       :src="index === 0 ? '/images/chanwit-Photoroom.png' : index === 1 ? '/images/saman-Photoroom.png' : index === 2 ? '/images/sitiporn-Photoroom.png' : '/images/wutisak-Photoroom.png'" 
+                       class="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-sm"
+                       alt="User"
+                     />
+                     <div 
+                       class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border border-white"
+                       :class="index === 0 ? 'bg-sky-500' : index === 1 ? 'bg-emerald-500' : index === 2 ? 'bg-indigo-500' : 'bg-amber-500'"
+                     ></div>
+                   </div>
+                   <div class="flex flex-col items-start">
+                     <span class="text-base font-black text-slate-900">{{ week }}</span>
+                     <p class="text-[10px] font-black uppercase text-slate-500 leading-tight">เข้า {{ data?.groupStats[week]?.entrance || 0 }}</p>
+                   </div>
                 </div>
               </div>
               
               <div class="grid grid-cols-2 gap-y-4 gap-x-3">
-                <!-- Entrance -->
-                <div class="flex flex-col">
-                  <p class="text-[11px] font-black uppercase text-slate-500 leading-tight">เข้า</p>
-                  <p class="text-2xl font-black text-slate-950 leading-none">{{ data?.groupStats[week]?.entrance || 0 }}</p>
-                </div>
                 <!-- Finished -->
                 <div class="flex flex-col">
                   <p class="text-[11px] font-black uppercase text-emerald-600 leading-tight">เสร็จ</p>
@@ -417,7 +415,7 @@ async function applyFilters() {
                 </div>
                 <!-- Pending/Carried Over -->
                 <div class="flex flex-col">
-                  <p class="text-[11px] font-black uppercase text-blue-600 leading-tight">ค้าง</p>
+                  <p class="text-[11px] font-black uppercase text-blue-600 leading-tight">ยังไม่เสร็จ</p>
                   <p class="text-2xl font-black text-slate-950 leading-none">{{ data?.groupStats[week]?.left || 0 }}</p>
                 </div>
                 <!-- Other Finished -->
@@ -425,6 +423,8 @@ async function applyFilters() {
                   <p class="text-[11px] font-black uppercase text-amber-600 leading-tight">เดือนอื่น</p>
                   <p class="text-2xl font-black text-slate-950 leading-none">{{ data?.groupStats[week]?.otherFinish || 0 }}</p>
                 </div>
+                <!-- Placeholder for grid symmetry -->
+                <div></div>
                 <!-- Outflow -->
                 <div class="flex flex-col col-span-2 pt-3 mt-1 border-t border-slate-200/50">
                   <p class="text-[11px] font-black uppercase text-slate-500 leading-tight">งานออกทั้งหมด</p>
@@ -434,63 +434,13 @@ async function applyFilters() {
             </div>
           </div>
 
-          <!-- Gauges Section (Enhanced and Centered) -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 place-items-center">
-            <div v-for="week in weeks" :key="`gauge-container-${week}`" class="w-full p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <p class="text-base font-black text-slate-900 mb-6 text-left border-b border-slate-100 pb-3">{{ week }} - เกจ์วัดความสมดุล</p>
-              <div class="flex flex-wrap justify-center gap-6">
-                <div v-for="(val, key) in data?.wGauges[week]" :key="key" class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center">
-                   <GaugeChart :value="val" :label="key" class="scale-150 mb-2" />
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Gauges Section (Removed from Weekly Cards) -->
           
-          <div class="flex justify-center mt-6 p-4 bg-slate-900 rounded-2xl">
-             <span class="text-sm font-black text-white px-8 py-2">
-                  รวม W/O ทั้งหมด: {{ data?.statusData.totalWorkOrders || 0 }}
-             </span>
-          </div>
-        </div>
-
-        <div class="dashboard-card rounded-xl p-5 sm:p-6">
-          <div class="mb-6 border-b border-slate-100 pb-4">
-            <h2 class="text-xl font-extrabold text-slate-900 flex items-center gap-2">
-              <div class="w-1.5 h-6 bg-emerald-600 rounded-full"></div>
-              สถานะงานปัจจุบัน
-            </h2>
-            <p class="text-sm font-semibold text-slate-500 mt-0.5">ภาพรวมสถานะงานทั้งหมดในระบบ</p>
-          </div>
-          <div class="grid gap-8 md:grid-cols-[auto_1fr] items-center">
-            <div class="mx-auto relative">
-              <div class="h-48 w-48 rounded-full shadow-[inset_0_4px_10px_rgba(0,0,0,0.05)] flex items-center justify-center p-3 border-4 border-white" :style="{ background: `conic-gradient(#1d4ed8 0 ${percent(sap, total)}%, #10b981 ${percent(sap, total)}% ${Number(percent(sap + finish, total))}%, #f59e0b ${Number(percent(sap + finish, total))}% 100%)` }">
-                <div class="flex h-full w-full items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-100">
-                  <div class="text-center">
-                    <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Total</p>
-                    <p class="text-3xl font-black text-slate-900 tracking-tight">{{ total.toLocaleString() }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="space-y-4">
-              <div v-for="card in statusCards" :key="card.title" class="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition-shadow group">
-                <div class="flex items-center gap-3">
-                  <div class="h-10 w-1 rounded-full group-hover:scale-y-110 transition-transform" :class="card.accent"></div>
-                  <div>
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-tighter">{{ card.title }}</p>
-                    <p class="text-sm font-bold text-slate-800">{{ card.subtitle }}</p>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <p class="text-xl font-black text-slate-900 tracking-tight">{{ card.value.toLocaleString() }}</p>
-                  <p class="text-[10px] font-bold text-slate-400">{{ card.percent }}% ของทั้งหมด</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
+      <!-- New Independent Gauge Section -->
+      <!-- New Independent Gauge Section -->
       <section class="mt-4 grid gap-4 xl:grid-cols-2">
         <!-- Card 1: Bar Chart -->
         <div class="dashboard-card rounded-xl p-5 sm:p-6 shadow-lg bg-white border-none relative overflow-hidden flex flex-col h-full">
@@ -587,6 +537,45 @@ async function applyFilters() {
             <div class="mt-4 pt-4 border-t border-slate-50 text-right">
               <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Groups: {{ equipmentItems.length }}</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-4">
+        <div class="dashboard-card rounded-xl p-6 bg-white border border-slate-200 shadow-sm">
+          <h2 class="text-xl font-extrabold text-slate-900 mb-6 flex items-center gap-2">
+            <div class="w-1.5 h-6 bg-indigo-600 rounded-full"></div>
+            LOAD FACTOR / MAN
+          </h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div v-for="week in weeks" :key="`gauge-container-${week}`" class="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+              <p class="text-base font-black text-slate-900 border-b border-slate-200 pb-2">{{ week }}</p>
+
+              <!-- MAN Section -->
+              <div>
+                <p class="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-wider">MAN</p>
+                <div class="flex justify-center gap-2">
+                   <GaugeChart :value="data?.wGauges[week]?.empNorm || 0" label="Emp" class="scale-100" />
+                   <GaugeChart :value="data?.wGauges[week]?.conNorm || 0" label="Con" class="scale-100" />
+                </div>
+              </div>
+
+              <!-- LOAD FACTOR Section -->
+              <div>
+                <p class="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-wider">LOAD FACTOR</p>
+                <div class="flex justify-center gap-2">
+                   <GaugeChart :value="data?.wGauges[week]?.empOT || 0" label="Emp OT" class="scale-100" />
+                   <GaugeChart :value="data?.wGauges[week]?.conOT || 0" label="Con OT" class="scale-100" />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex justify-center mt-6 p-4 bg-slate-900 rounded-2xl">
+             <span class="text-sm font-black text-white px-8 py-2">
+                  รวม W/O ทั้งหมด: {{ data?.statusData.totalWorkOrders || 0 }}
+             </span>
           </div>
         </div>
       </section>
