@@ -28,6 +28,59 @@ interface DashboardData {
     totalWorkOrders: number;
   };
   wGauges: Record<WeekKey, { empNorm: number; conNorm: number; empOT: number; conOT: number }>;
+  otSummary: {
+    title: string;
+    days: string[];
+    summaryHeaders: {
+      holidayHours: string;
+      totalOnePointFiveHours: string;
+      oneTimesAmount: string;
+      onePointFiveAmount: string;
+      totalPay: string;
+      threeTimesAmount: string;
+    };
+    rateLabels: {
+      oneTimes: string;
+      onePointFive: string;
+      totalPay: string;
+      threeTimes: string;
+    };
+    rows: Array<{
+      id: string;
+      sequence: string;
+      group: string;
+      name: string;
+      days: string[];
+      holidayHours: string;
+      totalOnePointFiveHours: string;
+      oneTimesAmount: string;
+      onePointFiveAmount: string;
+      totalPay: string;
+      threeTimesAmount: string;
+    }>;
+    totals: null | {
+      label: string;
+      holidayHours: string;
+      totalOnePointFiveHours: string;
+      oneTimesAmount: string;
+      onePointFiveAmount: string;
+      totalPay: string;
+      threeTimesAmount: string;
+    };
+  };
+  otCheckError: {
+    title: string;
+    days: string[];
+    rows: Array<{
+      id: string;
+      sequence: string;
+      employeeId: string;
+      name: string;
+      group: string;
+      checks: boolean[];
+      errorCount: string;
+    }>;
+  };
   equipmentData: Array<{
     name: string;
     values: number[];
@@ -83,6 +136,41 @@ const pendingCount = computed(() => data.value?.statusData.pending || 0);
 const finish = computed(() => data.value?.statusData.finish || 0);
 const allProjects = computed(() => data.value?.projects || []);
 const equipmentItems = computed(() => data.value?.equipmentData || []);
+const pendingOT = computed(() => pending.value && !data.value);
+const errorOT = computed(() => error.value);
+const otSummary = computed(() => data.value?.otSummary);
+const otCheckError = computed(() => data.value?.otCheckError);
+const otGroups = computed(() => {
+  const summary = otSummary.value;
+  if (!summary) return [];
+
+  return weeks.map(group => {
+    const rows = summary.rows.filter(row => row.group === group);
+    const checkRows = otCheckError.value?.rows.filter(row => row.group === group) || [];
+    const summaryTotals = {
+      label: 'ยอดรวมสุทธิ',
+      holidayHours: rows.reduce((sum, row) => sum + numericValue(row.holidayHours), 0),
+      totalOnePointFiveHours: rows.reduce((sum, row) => sum + numericValue(row.totalOnePointFiveHours), 0),
+      oneTimesAmount: rows.reduce((sum, row) => sum + numericValue(row.oneTimesAmount), 0),
+      onePointFiveAmount: rows.reduce((sum, row) => sum + numericValue(row.onePointFiveAmount), 0),
+      totalPay: rows.reduce((sum, row) => sum + numericValue(row.totalPay), 0),
+      threeTimesAmount: rows.reduce((sum, row) => sum + numericValue(row.threeTimesAmount), 0),
+    };
+    const totalPay = rows.reduce((sum, row) => sum + numericValue(row.totalPay), 0);
+    const errorTotal = checkRows.reduce((sum, row) => sum + numericValue(row.errorCount), 0);
+    return {
+      group,
+      rows,
+      checkRows,
+      errorTotal,
+      summaryTotals,
+      totalPay: totalPay.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    };
+  }).filter(group => group.rows.length > 0);
+});
 const maxWeekEntrance = computed(() => Math.max(...weeks.map(week => data.value?.groupStats[week].entrance || 0), 1));
 const maxEquipmentWeekValue = computed(() => Math.max(...equipmentItems.value.flatMap(item => item.values || []), 1));
 const equipmentColors = ['#0284c7', '#ef4444', '#f59e0b', '#16a34a', '#6366f1', '#14b8a6', '#64748b'];
@@ -148,6 +236,17 @@ const statusCards = computed(() => [
 function percent(value: number, base: number) {
   if (!base) return '0.0';
   return ((value / base) * 100).toFixed(1);
+}
+
+function numericValue(value: string) {
+  return Number(String(value || '').replace(/,/g, '')) || 0;
+}
+
+function formatOTNumber(value: number, fractionDigits = 2) {
+  return value.toLocaleString('th-TH', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
 }
 
 function weekHeight(week: WeekKey) {
@@ -293,7 +392,7 @@ async function applyFilters() {
         </button>
       </div>
 
-      <div class="filter-panel rounded-xl p-5 mb-6 border-sky-200 shadow-lg shadow-sky-900/5 bg-white">
+      <div v-if="activeTab !== 'ot'" class="filter-panel rounded-xl p-5 mb-6 border-sky-200 shadow-lg shadow-sky-900/5 bg-white">
           <div class="flex flex-col lg:flex-row lg:items-center gap-4">
             <div class="flex items-center gap-3 shrink-0">
               <div class="p-2 bg-sky-600 rounded-lg text-white">
@@ -772,23 +871,263 @@ async function applyFilters() {
       </template>
 
       <template v-else-if="activeTab === 'ot'">
-      <section class="dashboard-card rounded-xl bg-white p-6">
+      <section class="dashboard-card ot-fit-section rounded-xl bg-white p-2 sm:p-3">
         <div v-if="pendingOT" class="text-slate-500 font-bold">กำลังโหลดข้อมูลโอที...</div>
         <div v-else-if="errorOT" class="text-red-500 font-bold">โหลดข้อมูลไม่สำเร็จ</div>
-        <div v-else-if="otData && otData.length > 0" class="overflow-x-auto">
-          <h3 class="text-xl font-black text-slate-800 mb-4">ข้อมูลสรุปโอที</h3>
-          <table class="table table-md w-full border-collapse">
-            <thead>
-              <tr class="bg-slate-50">
-                <th v-for="header in otData[0]" :key="header" class="py-3 px-4 text-xs font-black uppercase text-slate-500">{{ header }}</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              <tr v-for="(row, index) in otData.slice(1)" :key="index" class="hover:bg-slate-50">
-                <td v-for="(cell, cellIndex) in row" :key="cellIndex" class="py-3 px-4 text-sm text-slate-700">{{ cell }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-else-if="otSummary && otSummary.rows.length > 0">
+          <div class="mb-2 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h3 class="text-lg font-black text-slate-900">{{ otSummary.title }}</h3>
+              <p class="mt-0.5 text-[10px] font-semibold text-slate-500">ข้อมูลจากชีตสรุปOT แสดงรายคน รายวัน และยอดจ่ายรวม</p>
+            </div>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div class="rounded-md bg-pink-50 px-2 py-1 text-right ring-1 ring-pink-100">
+                <p class="text-[10px] font-black text-pink-700">1เท่า</p>
+                <p class="text-sm font-black text-slate-900">{{ otSummary.rateLabels.oneTimes || '-' }}</p>
+              </div>
+              <div class="rounded-md bg-amber-50 px-2 py-1 text-right ring-1 ring-amber-100">
+                <p class="text-[10px] font-black text-amber-700">1.5เท่า</p>
+                <p class="text-sm font-black text-slate-900">{{ otSummary.rateLabels.onePointFive || '-' }}</p>
+              </div>
+              <div class="rounded-md bg-cyan-50 px-2 py-1 text-right ring-1 ring-cyan-100">
+                <p class="text-[10px] font-black text-cyan-700">ยอดจ่าย</p>
+                <p class="text-sm font-black text-slate-900">{{ otSummary.totals?.totalPay || '-' }}</p>
+              </div>
+              <div class="rounded-md bg-orange-50 px-2 py-1 text-right ring-1 ring-orange-100">
+                <p class="text-[10px] font-black text-orange-700">3เท่า</p>
+                <p class="text-sm font-black text-slate-900">{{ otSummary.rateLabels.threeTimes || '-' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <section v-for="group in otGroups" :key="`ot-detail-${group.group}`" class="rounded-lg border border-pink-200 bg-pink-50/40 p-3">
+              <div class="mb-2 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h4 class="border-l-8 border-pink-400 pl-3 text-base font-black text-slate-950">
+                    รายละเอียด OT ลูกจ้าง {{ group.group }}
+                  </h4>
+                  <p class="mt-0.5 text-[11px] font-bold text-slate-500">
+                    {{ otSummary.title }} · {{ group.rows.length }} ราย
+                  </p>
+                </div>
+                <div class="rounded-md bg-cyan-300 px-3 py-1 text-right text-slate-950">
+                  <p class="text-[10px] font-black">ยอดจ่ายรวม</p>
+                  <p class="text-sm font-black">{{ group.totalPay }}</p>
+                </div>
+              </div>
+
+              <div class="ot-fit-shell rounded-md border border-slate-700 bg-white">
+                <table class="ot-fit-table border-collapse">
+                  <colgroup>
+                    <col class="ot-col-seq" />
+                    <col class="ot-col-group" />
+                    <col class="ot-col-name" />
+                    <col v-for="day in otSummary.days" :key="`ot-detail-col-${group.group}-${day}`" class="ot-col-day" />
+                    <col class="ot-col-summary" />
+                    <col class="ot-col-summary" />
+                    <col class="ot-col-summary" />
+                    <col class="ot-col-summary-wide" />
+                    <col class="ot-col-summary-wide" />
+                    <col class="ot-col-summary" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th colspan="3" class="border border-slate-700 bg-slate-200 px-2 py-2 text-center font-black text-slate-900">ข้อมูลลูกจ้าง</th>
+                      <th :colspan="otSummary.days.length" class="border border-slate-700 bg-slate-200 px-2 py-2 text-center font-black text-slate-900">วันที่</th>
+                      <th class="border border-slate-700 bg-rose-100 px-2 py-2 text-center font-black text-red-600">{{ otSummary.summaryHeaders.holidayHours }}</th>
+                      <th class="border border-slate-700 bg-yellow-100 px-2 py-2 text-center font-black text-yellow-700">{{ otSummary.summaryHeaders.totalOnePointFiveHours }}</th>
+                      <th class="border border-slate-700 bg-pink-100 px-2 py-2 text-center font-black text-red-600">{{ otSummary.summaryHeaders.oneTimesAmount }}</th>
+                      <th class="border border-slate-700 bg-amber-100 px-2 py-2 text-center font-black text-yellow-700">{{ otSummary.summaryHeaders.onePointFiveAmount }}</th>
+                      <th class="border border-slate-700 bg-cyan-300 px-2 py-2 text-center font-black text-sky-900">{{ otSummary.summaryHeaders.totalPay }}</th>
+                      <th class="border border-slate-700 bg-orange-100 px-2 py-2 text-center font-black text-red-600">{{ otSummary.summaryHeaders.threeTimesAmount }}</th>
+                    </tr>
+                    <tr>
+                      <th class="w-12 border border-slate-700 bg-slate-300 px-2 py-1.5 text-center font-black text-slate-900">ลำดับ</th>
+                      <th class="w-16 border border-slate-700 bg-slate-300 px-2 py-1.5 text-center font-black text-slate-900">หมวด</th>
+                      <th class="w-56 border border-slate-700 bg-slate-300 px-2 py-1.5 text-center font-black text-slate-900">ชื่อ</th>
+                      <th v-for="day in otSummary.days" :key="`ot-detail-day-${group.group}-${day}`" class="w-7 border border-slate-700 bg-slate-300 px-1 py-1.5 text-center font-black text-slate-900">{{ day }}</th>
+                      <th class="w-16 border border-slate-700 bg-rose-100 px-2 py-1.5 text-center font-black text-slate-900">{{ otSummary.rateLabels.oneTimes || '-' }}</th>
+                      <th class="w-16 border border-slate-700 bg-yellow-100 px-2 py-1.5 text-center font-black text-slate-900">{{ otSummary.rateLabels.onePointFive || '-' }}</th>
+                      <th class="w-16 border border-slate-700 bg-pink-100 px-2 py-1.5 text-center font-black text-slate-900">{{ otSummary.rateLabels.oneTimes || '-' }}</th>
+                      <th class="w-20 border border-slate-700 bg-amber-100 px-2 py-1.5 text-center font-black text-slate-900">{{ otSummary.rateLabels.onePointFive || '-' }}</th>
+                      <th class="w-20 border border-slate-700 bg-cyan-300 px-2 py-1.5 text-center font-black text-sky-900">{{ otSummary.rateLabels.totalPay || '-' }}</th>
+                      <th class="w-16 border border-slate-700 bg-orange-100 px-2 py-1.5 text-center font-black text-slate-900">{{ otSummary.rateLabels.threeTimes || '-' }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, rowIndex) in group.rows" :key="row.id" :class="rowIndex % 2 === 0 ? 'bg-white' : 'bg-pink-50/60'">
+                      <td class="border border-slate-700 px-2 py-1.5 text-center font-black text-slate-900">{{ row.sequence }}</td>
+                      <td class="border border-slate-700 px-2 py-1.5 text-center font-black text-sky-800">{{ row.group }}</td>
+                      <td class="border border-slate-700 px-2 py-1.5 text-left font-semibold text-slate-900">{{ row.name }}</td>
+                      <td v-for="(dayValue, dayIndex) in row.days" :key="`${row.id}-detail-${dayIndex}`" class="border border-slate-700 px-1 py-1.5 text-center font-semibold text-slate-900">{{ dayValue }}</td>
+                      <td class="border border-slate-700 bg-rose-50 px-2 py-1.5 text-right font-bold text-slate-900">{{ row.holidayHours }}</td>
+                      <td class="border border-slate-700 bg-yellow-50 px-2 py-1.5 text-right font-bold text-slate-900">{{ row.totalOnePointFiveHours }}</td>
+                      <td class="border border-slate-700 bg-pink-50 px-2 py-1.5 text-right font-bold text-slate-900">{{ row.oneTimesAmount }}</td>
+                      <td class="border border-slate-700 bg-amber-50 px-2 py-1.5 text-right font-bold text-slate-900">{{ row.onePointFiveAmount }}</td>
+                      <td class="border border-slate-700 bg-cyan-300 px-2 py-1.5 text-right font-black text-slate-900">{{ row.totalPay }}</td>
+                      <td class="border border-slate-700 bg-orange-50 px-2 py-1.5 text-right font-bold text-slate-900">{{ row.threeTimesAmount }}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td :colspan="3 + otSummary.days.length" class="border border-slate-700 bg-emerald-50 px-2 py-2 text-right font-black text-slate-900">{{ group.summaryTotals.label }}</td>
+                      <td class="border border-slate-700 bg-rose-50 px-2 py-2 text-right font-black text-slate-900">{{ formatOTNumber(group.summaryTotals.holidayHours) }}</td>
+                      <td class="border border-slate-700 bg-yellow-50 px-2 py-2 text-right font-black text-slate-900">{{ formatOTNumber(group.summaryTotals.totalOnePointFiveHours) }}</td>
+                      <td class="border border-slate-700 bg-pink-50 px-2 py-2 text-right font-black text-slate-900">{{ formatOTNumber(group.summaryTotals.oneTimesAmount) }}</td>
+                      <td class="border border-slate-700 bg-amber-50 px-2 py-2 text-right font-black text-slate-900">{{ formatOTNumber(group.summaryTotals.onePointFiveAmount) }}</td>
+                      <td class="border border-slate-700 bg-yellow-300 px-2 py-2 text-right font-black text-slate-900">{{ formatOTNumber(group.summaryTotals.totalPay) }}</td>
+                      <td class="border border-slate-700 bg-orange-50 px-2 py-2 text-right font-black text-slate-900">{{ formatOTNumber(group.summaryTotals.threeTimesAmount) }}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <div v-if="false" class="ot-fit-shell rounded-lg border border-slate-300 bg-white">
+            <table class="ot-fit-table border-collapse">
+              <colgroup>
+                <col class="ot-col-seq" />
+                <col class="ot-col-group" />
+                <col class="ot-col-name" />
+                <col v-for="day in otSummary.days" :key="`ot-col-${day}`" class="ot-col-day" />
+                <col class="ot-col-summary" />
+                <col class="ot-col-summary" />
+                <col class="ot-col-summary" />
+                <col class="ot-col-summary-wide" />
+                <col class="ot-col-summary-wide" />
+                <col class="ot-col-summary" />
+              </colgroup>
+              <thead class="sticky top-0 z-20">
+                <tr>
+                  <th colspan="3" class="border border-slate-700 bg-slate-200 px-2 py-2 text-center font-black text-slate-900">ข้อมูลลูกจ้าง</th>
+                  <th :colspan="otSummary.days.length" class="border border-slate-700 bg-slate-200 px-2 py-2 text-center font-black text-slate-900">วันที่</th>
+                  <th class="border border-slate-700 bg-rose-100 px-2 py-2 text-center font-black text-red-600">{{ otSummary.summaryHeaders.holidayHours }}</th>
+                  <th class="border border-slate-700 bg-yellow-100 px-2 py-2 text-center font-black text-yellow-700">{{ otSummary.summaryHeaders.totalOnePointFiveHours }}</th>
+                  <th class="border border-slate-700 bg-pink-100 px-2 py-2 text-center font-black text-red-600">{{ otSummary.summaryHeaders.oneTimesAmount }}</th>
+                  <th class="border border-slate-700 bg-amber-100 px-2 py-2 text-center font-black text-yellow-700">{{ otSummary.summaryHeaders.onePointFiveAmount }}</th>
+                  <th class="border border-slate-700 bg-cyan-300 px-2 py-2 text-center font-black text-sky-900">{{ otSummary.summaryHeaders.totalPay }}</th>
+                  <th class="border border-slate-700 bg-orange-100 px-2 py-2 text-center font-black text-red-600">{{ otSummary.summaryHeaders.threeTimesAmount }}</th>
+                </tr>
+                <tr>
+                  <th class="sticky left-0 z-30 w-12 border border-slate-700 bg-slate-300 px-2 py-1.5 text-center font-black text-slate-900">ลำดับ</th>
+                  <th class="sticky left-12 z-30 w-16 border border-slate-700 bg-slate-300 px-2 py-1.5 text-center font-black text-slate-900">หมวด</th>
+                  <th class="sticky left-28 z-30 w-56 border border-slate-700 bg-slate-300 px-2 py-1.5 text-center font-black text-slate-900">ชื่อ</th>
+                  <th v-for="day in otSummary.days" :key="`ot-day-${day}`" class="w-7 border border-slate-700 bg-slate-300 px-1 py-1.5 text-center font-black text-slate-900">{{ day }}</th>
+                  <th class="w-16 border border-slate-700 bg-rose-100 px-2 py-1.5 text-center font-black text-slate-900">{{ otSummary.rateLabels.oneTimes || '-' }}</th>
+                  <th class="w-16 border border-slate-700 bg-yellow-100 px-2 py-1.5 text-center font-black text-slate-900">{{ otSummary.rateLabels.onePointFive || '-' }}</th>
+                  <th class="w-16 border border-slate-700 bg-pink-100 px-2 py-1.5 text-center font-black text-slate-900">{{ otSummary.rateLabels.oneTimes || '-' }}</th>
+                  <th class="w-20 border border-slate-700 bg-amber-100 px-2 py-1.5 text-center font-black text-slate-900">{{ otSummary.rateLabels.onePointFive || '-' }}</th>
+                  <th class="w-20 border border-slate-700 bg-cyan-300 px-2 py-1.5 text-center font-black text-sky-900">{{ otSummary.rateLabels.totalPay || '-' }}</th>
+                  <th class="w-16 border border-slate-700 bg-orange-100 px-2 py-1.5 text-center font-black text-slate-900">{{ otSummary.rateLabels.threeTimes || '-' }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template v-for="group in otGroups" :key="`ot-group-${group.group}`">
+                  <tr class="ot-group-row">
+                    <td :colspan="3 + otSummary.days.length" class="border border-slate-700 bg-sky-900 px-2 py-1 text-left font-black text-white">
+                      {{ group.group }} · {{ group.rows.length }} ราย
+                    </td>
+                    <td colspan="6" class="border border-slate-700 bg-sky-900 px-2 py-1 text-right font-black text-white">
+                      ยอดจ่ายรวม {{ group.totalPay }}
+                    </td>
+                  </tr>
+                  <tr v-for="(row, rowIndex) in group.rows" :key="row.id" :class="rowIndex % 2 === 0 ? 'bg-emerald-50/60' : 'bg-white'">
+                    <td class="sticky left-0 z-10 border border-slate-700 bg-inherit px-2 py-1.5 text-center font-black text-slate-900">{{ row.sequence }}</td>
+                    <td class="sticky left-12 z-10 border border-slate-700 bg-inherit px-2 py-1.5 text-center font-black text-sky-800">{{ row.group }}</td>
+                    <td class="sticky left-28 z-10 border border-slate-700 bg-inherit px-2 py-1.5 text-left font-semibold text-slate-900">{{ row.name }}</td>
+                    <td v-for="(dayValue, dayIndex) in row.days" :key="`${row.id}-${dayIndex}`" class="border border-slate-700 px-1 py-1.5 text-center font-semibold text-slate-900">{{ dayValue }}</td>
+                    <td class="border border-slate-700 bg-rose-50 px-2 py-1.5 text-right font-bold text-slate-900">{{ row.holidayHours }}</td>
+                    <td class="border border-slate-700 bg-yellow-50 px-2 py-1.5 text-right font-bold text-slate-900">{{ row.totalOnePointFiveHours }}</td>
+                    <td class="border border-slate-700 bg-pink-50 px-2 py-1.5 text-right font-bold text-slate-900">{{ row.oneTimesAmount }}</td>
+                    <td class="border border-slate-700 bg-amber-50 px-2 py-1.5 text-right font-bold text-slate-900">{{ row.onePointFiveAmount }}</td>
+                    <td class="border border-slate-700 bg-cyan-300 px-2 py-1.5 text-right font-black text-slate-900">{{ row.totalPay }}</td>
+                    <td class="border border-slate-700 bg-orange-50 px-2 py-1.5 text-right font-bold text-slate-900">{{ row.threeTimesAmount }}</td>
+                  </tr>
+                </template>
+              </tbody>
+              <tfoot v-if="otSummary.totals" class="sticky bottom-0 z-20">
+                <tr>
+                  <td :colspan="3 + otSummary.days.length" class="border border-slate-700 bg-emerald-50 px-2 py-2 text-right font-black text-slate-900">{{ otSummary.totals.label }}</td>
+                  <td class="border border-slate-700 bg-rose-50 px-2 py-2 text-right font-black text-slate-900">{{ otSummary.totals.holidayHours }}</td>
+                  <td class="border border-slate-700 bg-yellow-50 px-2 py-2 text-right font-black text-slate-900">{{ otSummary.totals.totalOnePointFiveHours }}</td>
+                  <td class="border border-slate-700 bg-pink-50 px-2 py-2 text-right font-black text-slate-900">{{ otSummary.totals.oneTimesAmount }}</td>
+                  <td class="border border-slate-700 bg-amber-50 px-2 py-2 text-right font-black text-slate-900">{{ otSummary.totals.onePointFiveAmount }}</td>
+                  <td class="border border-slate-700 bg-yellow-300 px-2 py-2 text-right font-black text-slate-900">{{ otSummary.totals.totalPay }}</td>
+                  <td class="border border-slate-700 bg-orange-50 px-2 py-2 text-right font-black text-slate-900">{{ otSummary.totals.threeTimesAmount }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div v-if="otCheckError && otCheckError.rows.length > 0" class="mt-4 space-y-4">
+            <section v-for="group in otGroups" :key="`ot-check-${group.group}`" class="rounded-lg border border-pink-200 bg-pink-50/40 p-3">
+              <div class="mb-2 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h4 class="border-l-8 border-red-500 pl-3 text-base font-black text-slate-950">
+                    ตรวจสอบข้อผิดพลาด OT ลูกจ้าง {{ group.group }}
+                  </h4>
+                  <p class="mt-0.5 text-[11px] font-bold text-slate-500">
+                    {{ otCheckError.title }} · {{ group.checkRows.length }} ราย
+                  </p>
+                </div>
+                <div class="rounded-md bg-red-600 px-3 py-1 text-right text-white">
+                  <p class="text-[10px] font-black">รวมข้อผิดพลาด</p>
+                  <p class="text-sm font-black">{{ group.errorTotal }}</p>
+                </div>
+              </div>
+
+              <div class="overflow-hidden rounded-md border border-slate-700 bg-white">
+                <table class="ot-check-table w-full border-collapse">
+                  <colgroup>
+                    <col class="ot-check-col-seq" />
+                    <col class="ot-check-col-id" />
+                    <col class="ot-check-col-name" />
+                    <col v-for="day in otCheckError.days" :key="`check-col-${group.group}-${day}`" class="ot-check-col-day" />
+                    <col class="ot-check-col-total" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th :colspan="3 + otCheckError.days.length + 1" class="border border-slate-700 bg-red-600 px-2 py-1 text-center font-black text-slate-950">
+                        CHECK OT ERROR ลูกจ้าง {{ group.group }}
+                      </th>
+                    </tr>
+                    <tr>
+                      <th class="w-10 border border-slate-700 bg-slate-300 px-2 py-1 text-center font-black text-slate-900">ลำดับ</th>
+                      <th class="w-14 border border-slate-700 bg-slate-300 px-2 py-1 text-center font-black text-slate-900">รหัส</th>
+                      <th class="ot-check-name-cell border border-slate-700 bg-slate-300 px-2 py-1 text-center font-black text-slate-900">ชื่อ</th>
+                      <th v-for="day in otCheckError.days" :key="`check-${group.group}-${day}`" class="border border-slate-700 bg-slate-300 px-1 py-1 text-center font-black text-slate-900">
+                        {{ day }}
+                      </th>
+                      <th class="w-14 border border-slate-700 bg-slate-300 px-2 py-1 text-center font-black text-slate-900">รวม</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, rowIndex) in group.checkRows" :key="row.id" :class="rowIndex % 2 === 0 ? 'bg-white' : 'bg-pink-50/60'">
+                      <td class="border border-slate-700 px-2 py-1 text-center font-black text-slate-900">{{ row.sequence }}</td>
+                      <td class="border border-slate-700 px-2 py-1 text-center font-bold text-slate-900">{{ row.employeeId }}</td>
+                      <td class="ot-check-name-cell border border-slate-700 px-2 py-1 text-left font-bold text-slate-950">{{ row.name }}</td>
+                      <td
+                        v-for="(isValid, dayIndex) in row.checks"
+                        :key="`${row.id}-check-${dayIndex}`"
+                        class="border border-slate-700 px-1 py-1 text-center font-black"
+                        :class="isValid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-600 text-white'"
+                      >
+                        {{ isValid ? '✓' : '' }}
+                      </td>
+                      <td class="border border-slate-700 bg-red-600 px-2 py-1 text-center font-black text-white">{{ row.errorCount }}</td>
+                    </tr>
+                    <tr v-if="group.checkRows.length === 0">
+                      <td :colspan="3 + otCheckError.days.length + 1" class="border border-slate-700 bg-white px-2 py-4 text-center font-bold text-slate-500">
+                        ไม่พบข้อมูลตรวจสอบของ {{ group.group }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
         </div>
         <div v-else class="text-slate-500 font-bold text-center py-10">ไม่พบข้อมูล</div>
       </section>

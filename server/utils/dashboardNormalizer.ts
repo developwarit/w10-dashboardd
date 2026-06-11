@@ -6,6 +6,10 @@ function text(value: unknown) {
   return String(value ?? '').trim();
 }
 
+function normalizePersonName(value: unknown) {
+  return text(value).replace(/\s+/g, '').toLowerCase();
+}
+
 function numberAt(rows: SheetRows, rowIndex: number, columnIndex: number) {
   const value = rows[rowIndex]?.[columnIndex];
   if (!value) return 0;
@@ -113,6 +117,100 @@ function buildWGauges(infoRows: SheetRows) {
   };
 }
 
+function buildOTSummary(otRows: SheetRows) {
+  const headerRow = otRows[2] || [];
+  const days = Array.from({ length: 31 }, (_, index) => text(headerRow[index + 4]) || String(index + 1));
+  const summaryHeaders = {
+    holidayHours: text(headerRow[35]) || 'ชม.วันหยุด',
+    totalOnePointFiveHours: text(headerRow[36]) || 'รวมชม1.5',
+    oneTimesAmount: text(otRows[1]?.[37]) || '1เท่า',
+    onePointFiveAmount: text(otRows[1]?.[38]) || '1.5เท่า',
+    totalPay: text(otRows[1]?.[39]) || 'ยอดจ่าย',
+    threeTimesAmount: text(otRows[1]?.[40]) || '3เท่า',
+  };
+
+  const rateLabels = {
+    oneTimes: text(headerRow[37]),
+    onePointFive: text(headerRow[38]),
+    totalPay: text(headerRow[39]),
+    threeTimes: text(headerRow[40]),
+  };
+
+  const bodyRows = otRows.slice(3);
+  const totalRow = bodyRows.find(row => text(row[34]).includes('ยอดรวมสุทธิ'));
+  const rows = bodyRows
+    .filter(row => text(row[1]) && text(row[2]) && text(row[3]))
+    .filter(row => !text(row[34]).includes('ยอดรวมสุทธิ'))
+    .map((row, index) => ({
+      id: `${text(row[2]) || 'OT'}-${text(row[1]) || index}-${text(row[3]) || index}`,
+      sequence: text(row[1]),
+      group: text(row[2]),
+      name: text(row[3]),
+      days: days.map((_, dayIndex) => text(row[dayIndex + 4]) || '-'),
+      holidayHours: text(row[35]) || '0.00',
+      totalOnePointFiveHours: text(row[36]) || '0.00',
+      oneTimesAmount: text(row[37]) || '0.00',
+      onePointFiveAmount: text(row[38]) || '0.00',
+      totalPay: text(row[39]) || '0.00',
+      threeTimesAmount: text(row[40]) || '0.00',
+    }));
+
+  return {
+    title: text(otRows[1]?.[2]) || 'ตารางสรุป OT',
+    days,
+    summaryHeaders,
+    rateLabels,
+    rows,
+    totals: totalRow ? {
+      label: text(totalRow[34]) || 'ยอดรวมสุทธิ',
+      holidayHours: text(totalRow[35]) || '0.00',
+      totalOnePointFiveHours: text(totalRow[36]) || '0.00',
+      oneTimesAmount: text(totalRow[37]) || '0.00',
+      onePointFiveAmount: text(totalRow[38]) || '0.00',
+      totalPay: text(totalRow[39]) || '0.00',
+      threeTimesAmount: text(totalRow[40]) || '0.00',
+    } : null,
+  };
+}
+
+function buildOTCheckError(checkRows: SheetRows, summaryRows: ReturnType<typeof buildOTSummary>['rows']) {
+  const headerRow = checkRows[2] || [];
+  const days = Array.from({ length: 31 }, (_, index) => text(headerRow[index + 4]) || String(index + 1));
+  const groupByName = new Map<string, string>();
+
+  for (const row of summaryRows) {
+    const key = normalizePersonName(row.name);
+    if (key && !groupByName.has(key)) {
+      groupByName.set(key, row.group);
+    }
+  }
+
+  const rows = checkRows
+    .slice(3)
+    .filter(row => text(row[1]) && text(row[3]))
+    .map((row, index) => {
+      const name = text(row[3]);
+      const checks = days.map((_, dayIndex) => text(row[dayIndex + 4]).toUpperCase() !== 'FALSE');
+      const errorCount = text(row[35]) || String(checks.filter(value => !value).length);
+
+      return {
+        id: `OT-CHECK-${text(row[1]) || index}-${name || index}`,
+        sequence: text(row[1]),
+        employeeId: text(row[2]),
+        name,
+        group: groupByName.get(normalizePersonName(name)) || '',
+        checks,
+        errorCount,
+      };
+    });
+
+  return {
+    title: 'CHECK OT ERROR ลูกจ้าง',
+    days,
+    rows,
+  };
+}
+
 function buildProcurementData(infoRows: SheetRows) {
   const statusSummary = Array.from({ length: 8 }, (_, i) => ({
     status: infoRows[1 + i][73],
@@ -129,12 +227,13 @@ function buildProcurementData(infoRows: SheetRows) {
   return { statusSummary, weeklyTotals, totalProcurement };
 }
 
-export function normalizeDashboard(rawSheets: { dashboard: SheetRows; info: SheetRows }, filters: { year?: string; month?: string } = {}) {
+export function normalizeDashboard(rawSheets: { dashboard: SheetRows; info: SheetRows; otSummary?: SheetRows; otCheckError?: SheetRows }, filters: { year?: string; month?: string } = {}) {
   const infoRows = rawSheets.info || [];
   const { projects, weeklyProjects } = buildProjects(infoRows);
   const groupStats = buildGroupStats(infoRows, weeklyProjects);
   const statusData = buildStatusData(infoRows);
   const procurementData = buildProcurementData(infoRows);
+  const otSummary = buildOTSummary(rawSheets.otSummary || []);
   const sheetYearRaw = text(infoRows[1]?.[2]) || '2025';
   const sheetMonthRaw = text(infoRows[2]?.[2]) || 'all';
 
@@ -146,6 +245,8 @@ export function normalizeDashboard(rawSheets: { dashboard: SheetRows; info: Shee
     statusSummary: { total: { entrance: groupStats.W_all.entrance } },
     groupStats,
     wGauges: buildWGauges(infoRows),
+    otSummary,
+    otCheckError: buildOTCheckError(rawSheets.otCheckError || [], otSummary.rows),
     w_all: { entrance: groupStats.W_all.entrance },
     statusData,
     equipmentData: buildEquipmentData(infoRows),
@@ -155,6 +256,8 @@ export function normalizeDashboard(rawSheets: { dashboard: SheetRows; info: Shee
     debugInfo: {
       dashboardRows: rawSheets.dashboard?.length || 0,
       infoRows: infoRows.length,
+      otSummaryRows: rawSheets.otSummary?.length || 0,
+      otCheckErrorRows: rawSheets.otCheckError?.length || 0,
     },
     timestamp: new Date().toISOString(),
   };

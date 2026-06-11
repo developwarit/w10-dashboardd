@@ -72,3 +72,112 @@ input,
   border-color: rgb(13 148 136);
   background: #ffffff;
 }
+
+.ot-fit-section {
+  overflow: visible;
+}
+
+.ot-fit-shell {
+  max-height: calc(100vh - 235px);
+  overflow: hidden;
+}
+
+.ot-fit-table {
+  width: 100%;
+  table-layout: fixed;
+  font-size: clamp(6px, 0.54vw, 9px);
+  line-height: 1.05;
+}
+
+.ot-fit-table th,
+.ot-fit-table td {
+  height: 13px;
+  padding: 1px 2px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.ot-fit-table thead th {
+  height: 14px;
+}
+
+.ot-fit-table tfoot td {
+  height: 13px;
+}
+
+.ot-fit-table .ot-group-row td {
+  height: 11px;
+  padding: 0 3px !important;
+}
+
+.ot-col-seq {
+  width: 3.2%;
+}
+
+.ot-col-group {
+  width: 4.2%;
+}
+
+.ot-col-name {
+  width: 13.5%;
+}
+
+.ot-col-day {
+  width: 1.72%;
+}
+
+.ot-col-summary {
+  width: 4%;
+}
+
+.ot-col-summary-wide {
+  width: 4.8%;
+}
+
+.ot-check-table {
+  table-layout: fixed;
+  font-size: clamp(7px, 0.62vw, 10px);
+  line-height: 1.1;
+}
+
+.ot-check-table th,
+.ot-check-table td {
+  height: 24px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.ot-check-col-seq {
+  width: 3.8%;
+}
+
+.ot-check-col-id {
+  width: 4.8%;
+}
+
+.ot-check-col-name {
+  width: 16%;
+}
+
+.ot-check-col-day {
+  width: 2.25%;
+}
+
+.ot-check-col-total {
+  width: 4.5%;
+}
+
+.ot-check-table .ot-check-name-cell {
+  height: auto;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  line-height: 1.25;
+  word-break: keep-all;
+}
+
+.ot-check-table tbody .ot-check-name-cell {
+  font-size: clamp(7px, 0.58vw, 9px);
+}
