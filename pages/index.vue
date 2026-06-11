@@ -772,14 +772,25 @@ async function applyFilters() {
       </template>
 
       <template v-else-if="activeTab === 'ot'">
-      <section class="min-h-[400px] flex items-center justify-center dashboard-card rounded-xl bg-white/50 border-dashed border-2 border-slate-200">
-        <div class="text-center">
-          <div class="p-4 bg-slate-100 rounded-full text-slate-400 mx-auto w-fit mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <h3 class="text-xl font-black text-slate-400">ยังไม่มีข้อมูลสรุปโอที</h3>
-          <p class="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Waiting for data structure</p>
+      <section class="dashboard-card rounded-xl bg-white p-6">
+        <div v-if="pendingOT" class="text-slate-500 font-bold">กำลังโหลดข้อมูลโอที...</div>
+        <div v-else-if="errorOT" class="text-red-500 font-bold">โหลดข้อมูลไม่สำเร็จ</div>
+        <div v-else-if="otData && otData.length > 0" class="overflow-x-auto">
+          <h3 class="text-xl font-black text-slate-800 mb-4">ข้อมูลสรุปโอที</h3>
+          <table class="table table-md w-full border-collapse">
+            <thead>
+              <tr class="bg-slate-50">
+                <th v-for="header in otData[0]" :key="header" class="py-3 px-4 text-xs font-black uppercase text-slate-500">{{ header }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr v-for="(row, index) in otData.slice(1)" :key="index" class="hover:bg-slate-50">
+                <td v-for="(cell, cellIndex) in row" :key="cellIndex" class="py-3 px-4 text-sm text-slate-700">{{ cell }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+        <div v-else class="text-slate-500 font-bold text-center py-10">ไม่พบข้อมูล</div>
       </section>
       </template>
 
