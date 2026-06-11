@@ -669,8 +669,8 @@ async function applyFilters() {
                 <p class="text-2xl font-black text-sky-700">{{ item.amount }}</p>
               </div>
             </div>
-            <div class="mt-4 pt-4 border-t border-slate-100 text-right">
-              <p class="text-sm font-bold text-slate-500">รวมทั้งหมด: <span class="text-xl font-black text-slate-950">{{ data?.procurementData.totalProcurement }}</span></p>
+            <div class="mt-6 p-4 bg-slate-900 rounded-2xl text-center">
+              <p class="text-sm font-black text-white">รวมทั้งหมด: {{ data?.procurementData.totalProcurement }}</p>
             </div>
           </div>
           
