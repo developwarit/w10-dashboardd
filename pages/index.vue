@@ -677,15 +677,21 @@ async function applyFilters() {
           <!-- Status Summary Card -->
           <div class="dashboard-card rounded-xl shadow-xl border-none bg-white p-6">
             <h3 class="text-lg font-black text-slate-900 mb-6 text-center">สถานะงานซื้อจ้าง</h3>
-            <div class="flex items-end justify-between h-48 gap-2 pt-10">
+            <div class="flex items-end justify-between h-48 gap-3 pt-10 px-4">
               <div v-for="item in data?.procurementData.statusSummary" :key="item.status" class="flex flex-col items-center flex-1 group h-full">
-                <div class="relative w-8 flex justify-center items-end bg-slate-100 rounded-t-sm h-full">
-                   <!-- Bar with color based on status -->
-                   <div class="w-full transition-all duration-500" :style="{ height: `${(item.count / Math.max(...data!.procurementData.statusSummary.map(s => s.count), 1)) * 100}%`, backgroundColor: getStatusColor(item.status) }"></div>
+                <div class="relative w-10 flex justify-center items-end bg-slate-100 rounded-t-xl h-full shadow-inner">
+                   <!-- Bar with gradient and shadow -->
+                   <div 
+                     class="w-full transition-all duration-700 ease-out rounded-t-xl shadow-lg group-hover:brightness-110" 
+                     :style="{ 
+                       height: `${(item.count / Math.max(...data!.procurementData.statusSummary.map(s => s.count), 1)) * 100}%`, 
+                       background: `linear-gradient(to top, ${getStatusColor(item.status)}, ${getStatusColor(item.status)}cc)` 
+                     }"
+                   ></div>
                    <!-- Value Label on top of bar -->
-                   <span class="absolute -top-6 text-xs font-black" :style="{ color: getStatusColor(item.status) }">{{ item.count }}</span>
+                   <span class="absolute -top-7 text-xs font-black drop-shadow-sm" :style="{ color: getStatusColor(item.status) }">{{ item.count }}</span>
                 </div>
-                <span class="text-[10px] font-bold text-slate-600 mt-2 text-center rotate-45 origin-top-left whitespace-nowrap">{{ item.status }}</span>
+                <span class="text-[10px] font-black text-slate-500 mt-3 text-center rotate-45 origin-top-left uppercase tracking-tighter">{{ item.status }}</span>
               </div>
             </div>
           </div>
